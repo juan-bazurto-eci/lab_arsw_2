@@ -2,39 +2,34 @@ package edu.eci.arsw.primefinder;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Scanner;
 
 public class PrimeFinderThread extends Thread{
 
 	
 	int a,b;
+	boolean estado;
+    private boolean running;
+	private List<Integer> primes;
 	
-	private final List<Integer> primes;
-	
-	public PrimeFinderThread(int a, int b, List<Integer> sharedPrimes) {
+	public PrimeFinderThread(int a, int b) {
 		super();
-        this.primes = sharedPrimes;
+                this.primes = new LinkedList<>();
 		this.a = a;
 		this.b = b;
+        this.running = true;
 	}
 
         @Override
-	public void run() {
-        try{
-            viewPrimes();
-        }catch (InterruptedException ex){
-            ex.printStackTrace();
-        }
-	}
-
-    synchronized private void viewPrimes() throws InterruptedException{
-            for (int i = a; i < b; i++) {
-                if (isPrime(i)) {
+	public void run(){
+            for (int i= a;i < b;i++){						
+                if (isPrime(i)){
                     primes.add(i);
-                    System.out.println(this.getName()+" - PRIME: "+i);
+                    System.out.println(i);
                 }
+                pause();
             }
-        }
+            this.running=false;
+	}
 	
 	boolean isPrime(int n) {
 	    boolean ans;
@@ -52,5 +47,29 @@ public class PrimeFinderThread extends Thread{
 	public List<Integer> getPrimes() {
 		return primes;
 	}
-	
+
+    public synchronized void hold(){
+        estado = true;
+    }
+
+    public synchronized void restart(){
+        estado = false;
+        notifyAll();
+    }
+
+    public synchronized void pause(){
+        while(estado){
+            try{
+                wait();
+
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+    }
+
+    public boolean isRunning() {
+        return this.running;
+    }
 }
