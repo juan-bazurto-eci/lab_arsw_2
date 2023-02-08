@@ -18,10 +18,10 @@ import java.io.InputStream;
 public class Board extends JLabel implements Observer {
 
 	private static final long serialVersionUID = 1L;
-	public static final int NR_BARRIERS = 5;
+	public static final int NR_BARRIERS = 5; //Changed, original = 5
 	public static final int NR_JUMP_PADS = 2;
-	public static final int NR_TURBO_BOOSTS = 2;
-	public static final int NR_FOOD = 5;
+	public static final int NR_TURBO_BOOSTS = 2; //changed, original = 2
+	public static final int NR_FOOD = 5; //changed, original = 5
 	static Cell[] food = new Cell[NR_FOOD];
 	static Cell[] barriers = new Cell[NR_BARRIERS];
 	static Cell[] jump_pads = new Cell[NR_JUMP_PADS];
@@ -34,7 +34,7 @@ public class Board extends JLabel implements Observer {
 	public Board() {
 		if ((NR_BARRIERS + NR_JUMP_PADS + NR_FOOD + NR_TURBO_BOOSTS) > GridSize.GRID_HEIGHT
 				* GridSize.GRID_WIDTH)
-			throw new IllegalArgumentException(); 
+			throw new IllegalArgumentException();
 		GenerateBoard();
 		GenerateFood();
 		GenerateBarriers();
@@ -117,7 +117,7 @@ public class Board extends JLabel implements Observer {
 
 	private void drawTurboBoosts(Graphics g) {
 		Image light = null;
-                InputStream resource=ClassLoader.getSystemResourceAsStream("Img/lightning.png");
+		InputStream resource=ClassLoader.getSystemResourceAsStream("Img/lightning.png");
 		try {
 			light = ImageIO.read(resource);
 		} catch (IOException e) {
@@ -131,10 +131,10 @@ public class Board extends JLabel implements Observer {
 
 	private void drawJumpPads(Graphics g) {
 		Image jump = null;
-                
-                InputStream resource=ClassLoader.getSystemResourceAsStream("Img/up.png");
 
-                try {
+		InputStream resource=getClass().getClassLoader().getResourceAsStream("Img/up.png");
+
+		try {
 			jump = ImageIO.read(resource);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -148,10 +148,10 @@ public class Board extends JLabel implements Observer {
 	private void drawBarriers(Graphics g) {
 
 		Image firewall = null;
-                
-                InputStream resource=ClassLoader.getSystemResourceAsStream("Img/firewall.png");
 
-                try {
+		InputStream resource=ClassLoader.getSystemResourceAsStream("Img/firewall.png");
+
+		try {
 			firewall = ImageIO.read(resource);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -167,8 +167,8 @@ public class Board extends JLabel implements Observer {
 
 	private void drawFood(Graphics g) {
 		Image mouse = null;
-                InputStream resource=ClassLoader.getSystemResourceAsStream("Img/mouse.png");
-		
+		InputStream resource=ClassLoader.getSystemResourceAsStream("Img/mouse.png");
+
 		try {
 			mouse = ImageIO.read(resource);
 		} catch (IOException e) {
@@ -176,27 +176,29 @@ public class Board extends JLabel implements Observer {
 		}
 
 		for (Cell c : food){
-		g.drawImage(mouse, c.getX() * GridSize.WIDTH_BOX, c.getY()
-				* GridSize.HEIGH_BOX, this);
+			g.drawImage(mouse, c.getX() * GridSize.WIDTH_BOX, c.getY()
+					* GridSize.HEIGH_BOX, this);
 		}
 	}
 
 	private void drawSnake(Graphics g) {
 		for (int i = 0; i != SnakeApp.MAX_THREADS; i++) {
-			for (Cell p : SnakeApp.getApp().snakes[i].getBody()) {
-				if (p.equals(SnakeApp.getApp().snakes[i].getBody().peekFirst())) {
-					g.setColor(new Color(050+(i*10), 205, 150));
-					g.fillRect(p.getX() * GridSize.WIDTH_BOX, p.getY()
-							* GridSize.HEIGH_BOX, GridSize.WIDTH_BOX,
-							GridSize.HEIGH_BOX);
-				} else {
-					if (SnakeApp.getApp().snakes[i].isSelected()) {
-						g.setColor(new Color(032, 178, 170));
-					} else
-						g.setColor(new Color(034, 139, 034));
-					g.fillRect(p.getX() * GridSize.WIDTH_BOX, p.getY()
-							* GridSize.HEIGH_BOX, GridSize.WIDTH_BOX,
-							GridSize.HEIGH_BOX);
+			for (Cell p : SnakeApp.getApp().snakes.get(i).getBody()) {
+				synchronized (SnakeApp.getApp().snakes.get(i).getBody()) {
+					if (p.equals(SnakeApp.getApp().snakes.get(i).getBody().peekFirst())) {
+						g.setColor(new Color(050 + (i * 10), 205, 150));
+						g.fillRect(p.getX() * GridSize.WIDTH_BOX, p.getY()
+										* GridSize.HEIGH_BOX, GridSize.WIDTH_BOX,
+								GridSize.HEIGH_BOX);
+					} else {
+						if (SnakeApp.getApp().snakes.get(i).isSelected()) {
+							g.setColor(new Color(032, 178, 170));
+						} else
+							g.setColor(new Color(034, 139, 034));
+						g.fillRect(p.getX() * GridSize.WIDTH_BOX, p.getY()
+										* GridSize.HEIGH_BOX, GridSize.WIDTH_BOX,
+								GridSize.HEIGH_BOX);
+					}
 				}
 			}
 		}

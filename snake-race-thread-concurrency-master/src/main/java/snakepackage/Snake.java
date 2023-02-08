@@ -9,6 +9,7 @@ import enums.GridSize;
 
 public class Snake extends Observable implements Runnable {
 
+    private boolean state;
     private int idt;
     private Cell head;
     private Cell newCell;
@@ -20,7 +21,7 @@ public class Snake extends Observable implements Runnable {
 
     private int direction = Direction.NO_DIRECTION;
     private final int INIT_SIZE = 3;
-
+    private int large = 3;
     private boolean hasTurbo = false;
     private int jumps = 0;
     private boolean isSelected = false;
@@ -48,7 +49,9 @@ public class Snake extends Observable implements Runnable {
     @Override
     public void run() {
         while (!snakeEnd) {
-            
+
+
+
             snakeCalc();
 
             //NOTIFY CHANGES TO GUI
@@ -65,66 +68,76 @@ public class Snake extends Observable implements Runnable {
                 e.printStackTrace();
             }
 
+            pause();
+
         }
-        
+
         fixDirection(head);
-        
-        
+
+
     }
 
     private void snakeCalc() {
-        head = snakeBody.peekFirst();
+        synchronized (snakeBody) {
+            head = snakeBody.peekFirst();
 
-        newCell = head;
+            newCell = head;
 
-        newCell = changeDirection(newCell);
-        
-        randomMovement(newCell);
+            newCell = changeDirection(newCell);
 
-        checkIfFood(newCell);
-        checkIfJumpPad(newCell);
-        checkIfTurboBoost(newCell);
-        checkIfBarrier(newCell);
-        
-        snakeBody.push(newCell);
+            randomMovement(newCell);
 
-        if (growing <= 0) {
-            newCell = snakeBody.peekLast();
-            snakeBody.remove(snakeBody.peekLast());
-            Board.gameboard[newCell.getX()][newCell.getY()].freeCell();
-        } else if (growing != 0) {
-            growing--;
+            checkIfFood(newCell);
+            checkIfJumpPad(newCell);
+            checkIfTurboBoost(newCell);
+            checkIfBarrier(newCell);
+
+            snakeBody.push(newCell);
+            synchronized (Board.gameboard) {
+                if (growing <= 0) {
+                    newCell = snakeBody.peekLast();
+                    snakeBody.remove(snakeBody.peekLast());
+                    Board.gameboard[newCell.getX()][newCell.getY()].freeCell();
+                } else if (growing != 0) {
+                    growing--;
+                }
+            }
         }
 
     }
 
     private void checkIfBarrier(Cell newCell) {
-        if (Board.gameboard[newCell.getX()][newCell.getY()].isBarrier()) {
-            // crash
-            System.out.println("[" + idt + "] " + "CRASHED AGAINST BARRIER "
-                    + newCell.toString());
-            snakeEnd=true;
+        synchronized (Board.gameboard) {
+            if (Board.gameboard[newCell.getX()][newCell.getY()].isBarrier()) {
+                // crash
+                System.out.println("[" + idt + "] " + "CRASHED AGAINST BARRIER "
+                        + newCell.toString());
+                snakeEnd = true;
+            }
         }
     }
 
-    
+
     private Cell fixDirection(Cell newCell) {
+        synchronized (Board.gameboard) {
 
-        // revert movement
-        if (direction == Direction.LEFT
-                && head.getX() + 1 < GridSize.GRID_WIDTH) {
-            newCell = Board.gameboard[head.getX() + 1][head.getY()];
-        } else if (direction == Direction.RIGHT && head.getX() - 1 >= 0) {
-            newCell = Board.gameboard[head.getX() - 1][head.getY()];
-        } else if (direction == Direction.UP
-                && head.getY() + 1 < GridSize.GRID_HEIGHT) {
-            newCell = Board.gameboard[head.getX()][head.getY() + 1];
-        } else if (direction == Direction.DOWN && head.getY() - 1 >= 0) {
-            newCell = Board.gameboard[head.getX()][head.getY() - 1];
+            // revert movement
+            if (direction == Direction.LEFT
+                    && head.getX() + 1 < GridSize.GRID_WIDTH) {
+                newCell = Board.gameboard[head.getX() + 1][head.getY()];
+            } else if (direction == Direction.RIGHT && head.getX() - 1 >= 0) {
+                newCell = Board.gameboard[head.getX() - 1][head.getY()];
+            } else if (direction == Direction.UP
+                    && head.getY() + 1 < GridSize.GRID_HEIGHT) {
+                newCell = Board.gameboard[head.getX()][head.getY() + 1];
+            } else if (direction == Direction.DOWN && head.getY() - 1 >= 0) {
+                newCell = Board.gameboard[head.getX()][head.getY() - 1];
+            }
+
+            randomMovement(newCell);
         }
-
-        randomMovement(newCell);
         return newCell;
+
     }
 
     private boolean checkIfOwnBody(Cell newCell) {
@@ -152,62 +165,69 @@ public class Snake extends Observable implements Runnable {
     }
 
     private void checkIfTurboBoost(Cell newCell) {
-        if (Board.gameboard[newCell.getX()][newCell.getY()].isTurbo_boost()) {
-            // get turbo_boost
-            for (int i = 0; i != Board.NR_TURBO_BOOSTS; i++) {
-                if (Board.turbo_boosts[i] == newCell) {
-                    Board.turbo_boosts[i].setTurbo_boost(false);
-                    Board.turbo_boosts[i] = new Cell(-5, -5);
-                    hasTurbo = true;
-                }
+        synchronized (Board.gameboard) {
+            if (Board.gameboard[newCell.getX()][newCell.getY()].isTurbo_boost()) {
+                // get turbo_boost
+                for (int i = 0; i != Board.NR_TURBO_BOOSTS; i++) {
+                    if (Board.turbo_boosts[i] == newCell) {
+                        Board.turbo_boosts[i].setTurbo_boost(false);
+                        Board.turbo_boosts[i] = new Cell(-5, -5);
+                        hasTurbo = true;
+                    }
 
+                }
+                System.out.println("[" + idt + "] " + "GETTING TURBO BOOST "
+                        + newCell.toString());
             }
-            System.out.println("[" + idt + "] " + "GETTING TURBO BOOST "
-                    + newCell.toString());
         }
     }
 
     private void checkIfJumpPad(Cell newCell) {
 
-        if (Board.gameboard[newCell.getX()][newCell.getY()].isJump_pad()) {
-            // get jump_pad
-            for (int i = 0; i != Board.NR_JUMP_PADS; i++) {
-                if (Board.jump_pads[i] == newCell) {
-                    Board.jump_pads[i].setJump_pad(false);
-                    Board.jump_pads[i] = new Cell(-5, -5);
-                    this.jumps++;
-                }
+        synchronized (Board.gameboard) {
 
+            if (Board.gameboard[newCell.getX()][newCell.getY()].isJump_pad()) {
+                // get jump_pad
+                for (int i = 0; i != Board.NR_JUMP_PADS; i++) {
+                    if (Board.jump_pads[i] == newCell) {
+                        Board.jump_pads[i].setJump_pad(false);
+                        Board.jump_pads[i] = new Cell(-5, -5);
+                        this.jumps++;
+                    }
+
+                }
+                System.out.println("[" + idt + "] " + "GETTING JUMP PAD "
+                        + newCell.toString());
             }
-            System.out.println("[" + idt + "] " + "GETTING JUMP PAD "
-                    + newCell.toString());
         }
     }
 
     private void checkIfFood(Cell newCell) {
         Random random = new Random();
+        synchronized (Board.gameboard) {
+            if (Board.gameboard[newCell.getX()][newCell.getY()].isFood()) {
+                // eat food
+                large+=3;
+                growing += 3;
+                int x = random.nextInt(GridSize.GRID_HEIGHT);
+                int y = random.nextInt(GridSize.GRID_WIDTH);
 
-        if (Board.gameboard[newCell.getX()][newCell.getY()].isFood()) {
-            // eat food
-            growing += 3;
-            int x = random.nextInt(GridSize.GRID_HEIGHT);
-            int y = random.nextInt(GridSize.GRID_WIDTH);
+                System.out.println("[" + idt + "] " + "EATING "
+                        + newCell.toString());
 
-            System.out.println("[" + idt + "] " + "EATING "
-                    + newCell.toString());
+                for (int i = 0; i != Board.NR_FOOD; i++) {
+                    if (Board.food[i].getX() == newCell.getX()
+                            && Board.food[i].getY() == newCell.getY()) {
+                        Board.gameboard[Board.food[i].getX()][Board.food[i].getY()]
+                                .setFood(false);
 
-            for (int i = 0; i != Board.NR_FOOD; i++) {
-                if (Board.food[i].getX() == newCell.getX()
-                        && Board.food[i].getY() == newCell.getY()) {
-                    Board.gameboard[Board.food[i].getX()][Board.food[i].getY()]
-                            .setFood(false);
-
-                    while (Board.gameboard[x][y].hasElements()) {
-                        x = random.nextInt(GridSize.GRID_HEIGHT);
-                        y = random.nextInt(GridSize.GRID_WIDTH);
+                        while (Board.gameboard[x][y].hasElements()) {
+                            x = random.nextInt(GridSize.GRID_HEIGHT);
+                            y = random.nextInt(GridSize.GRID_WIDTH);
+                        }
+                        Board.food[i] = new Cell(x, y);
+                        Board.gameboard[x][y].setFood(true);
                     }
-                    Board.food[i] = new Cell(x, y);
-                    Board.gameboard[x][y].setFood(true);
                 }
             }
         }
@@ -256,19 +276,21 @@ public class Snake extends Observable implements Runnable {
             }
         }
 
-        switch (direction) {
-            case Direction.UP:
-                newCell = Board.gameboard[head.getX()][head.getY() - 1];
-                break;
-            case Direction.DOWN:
-                newCell = Board.gameboard[head.getX()][head.getY() + 1];
-                break;
-            case Direction.LEFT:
-                newCell = Board.gameboard[head.getX() - 1][head.getY()];
-                break;
-            case Direction.RIGHT:
-                newCell = Board.gameboard[head.getX() + 1][head.getY()];
-                break;
+        synchronized (Board.gameboard) {
+            switch (direction) {
+                case Direction.UP:
+                    newCell = Board.gameboard[head.getX()][head.getY() - 1];
+                    break;
+                case Direction.DOWN:
+                    newCell = Board.gameboard[head.getX()][head.getY() + 1];
+                    break;
+                case Direction.LEFT:
+                    newCell = Board.gameboard[head.getX() - 1][head.getY()];
+                    break;
+                case Direction.RIGHT:
+                    newCell = Board.gameboard[head.getX() + 1][head.getY()];
+                    break;
+            }
         }
         return newCell;
     }
@@ -328,7 +350,9 @@ public class Snake extends Observable implements Runnable {
     }*/
 
     public LinkedList<Cell> getBody() {
-        return this.snakeBody;
+        synchronized (snakeBody) {
+            return this.snakeBody;
+        }
     }
 
     public boolean isSelected() {
@@ -343,4 +367,28 @@ public class Snake extends Observable implements Runnable {
         return idt;
     }
 
+    public synchronized void hold(){
+        state = true;
+    }
+
+    public synchronized void restart(){
+        state = false;
+        notifyAll();
+    }
+
+    public synchronized void pause(){
+        while(state){
+            try{
+                wait();
+
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+    }
+
+    public int getLarge() {
+        return large;
+    }
 }
