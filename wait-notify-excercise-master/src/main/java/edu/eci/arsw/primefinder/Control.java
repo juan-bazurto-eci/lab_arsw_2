@@ -5,9 +5,6 @@
  */
 package edu.eci.arsw.primefinder;
 
-import java.util.LinkedList;
-import java.util.List;
-
 /**
  *
  */
@@ -20,19 +17,17 @@ public class Control extends Thread {
     private final int NDATA = MAXVALUE / NTHREADS;
 
     private PrimeFinderThread pft[];
-
-    private List<Integer> sharedPrimes;
     
     private Control() {
         super();
         this.pft = new  PrimeFinderThread[NTHREADS];
-        this.sharedPrimes = new LinkedList<>();
+
         int i;
         for(i = 0;i < NTHREADS - 1; i++) {
-            PrimeFinderThread elem = new PrimeFinderThread(i*NDATA, (i+1)*NDATA, sharedPrimes);
+            PrimeFinderThread elem = new PrimeFinderThread(i*NDATA, (i+1)*NDATA);
             pft[i] = elem;
         }
-        pft[i] = new PrimeFinderThread(i*NDATA, MAXVALUE + 1, sharedPrimes);
+        pft[i] = new PrimeFinderThread(i*NDATA, MAXVALUE + 1);
     }
     
     public static Control newControl() {
@@ -45,5 +40,25 @@ public class Control extends Thread {
             pft[i].start();
         }
     }
-    
+    public void hold(){
+        for(PrimeFinderThread  thread: pft){
+            thread.hold();
+        }
+    }
+    public void restart(){
+        for(PrimeFinderThread  thread: pft){
+            thread.restart();
+        }
+    }
+
+
+    public boolean threadsRunning() {
+        int cont = 0;
+        for(PrimeFinderThread  thread: pft){
+            if(thread.isRunning()){
+                cont++;
+            }
+        }
+        return cont>0;
+    }
 }

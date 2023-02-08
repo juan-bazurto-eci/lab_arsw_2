@@ -1,0 +1,23 @@
+#Posibles condiciones de carrera.
+
+- En el momento cuando dos serpientes o varias de estas quieran comerse un ratón
+    tiene que haber una sincronización para que solo una de estas se coma el ratón.
+- En el momento cuando dos serpientes o varias de estas quieran comerse un poder
+    tiene que haber una sincronización para que solo una de estas obtenga el poder.
+- En el momento cuando una serpiente aumente su tamaño y haga un salto tiene que tener sincronizacion
+    del proceso que se ejecute primero.
+
+#Uso inadecuado de colecciones,
+    considerando su manejo concurrente (para esto, aumente la velocidad del juego y
+        ejecútelo varias veces hasta que se genere un error).
+
+
+- Exception in thread "AWT-EventQueue-0" java.util.ConcurrentModificationException
+    Este error sucede cuando un hilo está intentando modificar una colección mientras otro hilo la está iterando.
+
+#Uso innecesario de esperas activas.
+- La espera activa puede verse en el bucle while (true) al final del método init(),
+    donde el programa comprueba continuamente si todas las serpientes han terminado,
+    y no realiza ninguna otra acción hasta que todas las serpientes hayan terminado.
+    Este bucle se ejecuta continuamente y consume tiempo de procesamiento,
+    a pesar de que no está haciendo ningún trabajo útil, por lo tanto causando una espera activa.
