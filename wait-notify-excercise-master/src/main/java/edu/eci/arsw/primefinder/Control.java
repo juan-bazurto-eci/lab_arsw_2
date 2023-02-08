@@ -61,4 +61,12 @@ public class Control extends Thread {
         }
         return cont>0;
     }
+
+    public void counter() {
+        int counter_ = 0;
+        for(int i = 0;i < NTHREADS;i++ ) {
+            counter_ += pft[i].getPrimes().size();
+        }
+        System.out.println("Number of primes found: " + counter_);
+    }
 }

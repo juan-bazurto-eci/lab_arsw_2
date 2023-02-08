@@ -15,8 +15,9 @@ public class Main {
             TimeUnit.SECONDS.sleep(2);
             long endTime = System.nanoTime();
             control.hold();
+            control.counter();
             Scanner scanner = new Scanner(System.in);
-            System.out.println("Presiona enter para continuar");
+            System.out.println("Press enter to continue");
             String input = scanner.nextLine();
             if (Objects.equals(input, "")) {
                 control.restart();
