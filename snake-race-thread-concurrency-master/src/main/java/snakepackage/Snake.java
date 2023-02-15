@@ -27,6 +27,12 @@ public class Snake extends Observable implements Runnable {
     private boolean isSelected = false;
     private int growing = 0;
     public boolean goal = false;
+    private boolean firstDead = false;
+    public static int snakeDead = 0;
+    private boolean pause = false;
+
+
+
 
     public Snake(int idt, Cell head, int direction) {
         this.idt = idt;
@@ -48,28 +54,43 @@ public class Snake extends Observable implements Runnable {
 
     @Override
     public void run() {
+
         while (!snakeEnd) {
 
-
-
-            snakeCalc();
-
-            //NOTIFY CHANGES TO GUI
-            setChanged();
-            notifyObservers();
-
-            try {
-                if (hasTurbo == true) {
-                    Thread.sleep(500 / 3);
-                } else {
-                    Thread.sleep(500);
+            if(pause) {
+                synchronized (this ) {
+                    try {
+                        this.wait();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
             }
 
-            pause();
+            synchronized (snakeBody) {
+                head = snakeBody.peekFirst();
+            }
+            newCell = head;
+            newCell = changeDirection(newCell);
+            randomMovement(newCell);
 
+            synchronized (newCell){
+                snakeCalc();
+
+                //NOTIFY CHANGES TO GUI
+                setChanged();
+                notifyObservers();
+
+                try {
+                    if (hasTurbo == true) {
+                        Thread.sleep(20 / 3);
+                    } else {
+                        Thread.sleep(20);
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
         }
 
         fixDirection(head);
@@ -78,41 +99,37 @@ public class Snake extends Observable implements Runnable {
     }
 
     private void snakeCalc() {
+
+        checkIfFood(newCell);
+        checkIfJumpPad(newCell);
+        checkIfTurboBoost(newCell);
+        checkIfBarrier(newCell);
+
         synchronized (snakeBody) {
-            head = snakeBody.peekFirst();
-
-            newCell = head;
-
-            newCell = changeDirection(newCell);
-
-            randomMovement(newCell);
-
-            checkIfFood(newCell);
-            checkIfJumpPad(newCell);
-            checkIfTurboBoost(newCell);
-            checkIfBarrier(newCell);
-
             snakeBody.push(newCell);
-            synchronized (Board.gameboard) {
-                if (growing <= 0) {
-                    newCell = snakeBody.peekLast();
-                    snakeBody.remove(snakeBody.peekLast());
-                    Board.gameboard[newCell.getX()][newCell.getY()].freeCell();
-                } else if (growing != 0) {
-                    growing--;
-                }
+
+            if (growing <= 0) {
+                newCell = snakeBody.peekLast();
+                snakeBody.remove(snakeBody.peekLast());
+                Board.gameboard[newCell.getX()][newCell.getY()].freeCell();
+            } else if (growing != 0) {
+                growing--;
             }
+
         }
+
 
     }
 
     private void checkIfBarrier(Cell newCell) {
-        synchronized (Board.gameboard) {
-            if (Board.gameboard[newCell.getX()][newCell.getY()].isBarrier()) {
-                // crash
-                System.out.println("[" + idt + "] " + "CRASHED AGAINST BARRIER "
-                        + newCell.toString());
-                snakeEnd = true;
+        if (Board.gameboard[newCell.getX()][newCell.getY()].isBarrier()) {
+            // crash
+            System.out.println("[" + idt + "] " + "CRASHED AGAINST BARRIER "
+                    + newCell.toString());
+            snakeEnd=true;
+            if (!firstDead) {
+                firstDead = true;
+                snakeDead = idt;
             }
         }
     }
@@ -276,21 +293,19 @@ public class Snake extends Observable implements Runnable {
             }
         }
 
-        synchronized (Board.gameboard) {
-            switch (direction) {
-                case Direction.UP:
-                    newCell = Board.gameboard[head.getX()][head.getY() - 1];
-                    break;
-                case Direction.DOWN:
-                    newCell = Board.gameboard[head.getX()][head.getY() + 1];
-                    break;
-                case Direction.LEFT:
-                    newCell = Board.gameboard[head.getX() - 1][head.getY()];
-                    break;
-                case Direction.RIGHT:
-                    newCell = Board.gameboard[head.getX() + 1][head.getY()];
-                    break;
-            }
+        switch (direction) {
+            case Direction.UP:
+                newCell = Board.gameboard[head.getX()][head.getY() - 1];
+                break;
+            case Direction.DOWN:
+                newCell = Board.gameboard[head.getX()][head.getY() + 1];
+                break;
+            case Direction.LEFT:
+                newCell = Board.gameboard[head.getX() - 1][head.getY()];
+                break;
+            case Direction.RIGHT:
+                newCell = Board.gameboard[head.getX() + 1][head.getY()];
+                break;
         }
         return newCell;
     }
@@ -371,21 +386,14 @@ public class Snake extends Observable implements Runnable {
         state = true;
     }
 
-    public synchronized void restart(){
-        state = false;
-        notifyAll();
+    public void pauseGame() {
+        this.pause = true;
     }
 
-    public synchronized void pause(){
-        while(state){
-            try{
-                wait();
+    public void continueSnake() {
+        this.pause = false;
 
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
+        synchronized (this) {this.notifyAll();}
     }
 
     public int getLarge() {
